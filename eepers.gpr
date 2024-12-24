@@ -1,0 +1,8 @@
+project Eepers is
+  for Main use ("eepers");
+  for Source_Dirs use (".");
+  package Compiler is
+    for Default_Switches ("Ada") use ("-gnatdk", "-gnat2022", "-gnatws");
+    for Local_Configuration_Pragmas use "spark.adc";
+  end Compiler;
+end Eepers;
