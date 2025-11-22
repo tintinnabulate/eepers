@@ -1,6 +1,6 @@
 with Ada.Text_IO;
 with Interfaces.C;
-with Raylib;            use Raylib;
+with Raylib;
 with Raymath;           use Raymath;
 with Ada.Strings.Unbounded;
 with Ada.Containers.Vectors;
@@ -16,6 +16,8 @@ with Ada.Numerics;      use Ada.Numerics;
 
 use type Interfaces.C.C_float;
 use type Interfaces.C.double;
+use type Raylib.Color;
+use type Raylib.Bool;
 
 procedure Eepers is
    package Random_Integer is new
@@ -23,23 +25,23 @@ procedure Eepers is
    Gen : Random_Integer.Generator;
 
    type Footsteps_Range is mod 4;
-   Footsteps_Sounds  : array (Footsteps_Range) of Sound;
+   Footsteps_Sounds  : array (Footsteps_Range) of Raylib.Sound;
    Footsteps_Pitches : constant array (Footsteps_Range) of Interfaces.C.C_Float :=
      (1.7, 1.6, 1.5, 1.4);
    package Random_Footsteps is new
      Ada.Numerics.Discrete_Random (Result_Subtype => Footsteps_Range);
    Footsteps_Gen     : Random_Footsteps.Generator;
-   Blast_Sound       : Sound;
-   Key_Pickup_Sound  : Sound;
-   Bomb_Pickup_Sound : Sound;
-   Open_Door_Sound   : Sound;
-   Checkpoint_Sound  : Sound;
-   Plant_Bomb_Sound  : Sound;
-   Guard_Step_Sound  : Sound;
-   Popup_Show_Sound  : Sound;
-   Ambient_Music     : Music;
-   Tutorial_Font     : Font;
-   Death_Font        : Font;
+   Blast_Sound       : Raylib.Sound;
+   Key_Pickup_Sound  : Raylib.Sound;
+   Bomb_Pickup_Sound : Raylib.Sound;
+   Open_Door_Sound   : Raylib.Sound;
+   Checkpoint_Sound  : Raylib.Sound;
+   Plant_Bomb_Sound  : Raylib.Sound;
+   Guard_Step_Sound  : Raylib.Sound;
+   Popup_Show_Sound  : Raylib.Sound;
+   Ambient_Music     : Raylib.Music;
+   Tutorial_Font     : Raylib.Font;
+   Death_Font        : Raylib.Font;
 
    Tutorial_Font_Size : constant Interfaces.C.Int := 42;
    Death_Font_Size    : constant Interfaces.C.Int := 68;
@@ -67,12 +69,12 @@ procedure Eepers is
    type HSV_Comp is (Hue, Sat, Value);
    type HSV is array (HSV_Comp) of Byte;
 
-   function HSV_To_RGB (C : HSV) return Color is
+   function HSV_To_RGB (C : HSV) return Raylib.Color is
       H : constant Interfaces.C.C_Float := Interfaces.C.C_Float (C (Hue)) / 255.0 * 360.0;
       S : constant Interfaces.C.C_Float := Interfaces.C.C_Float (C (Sat)) / 255.0;
       V : constant Interfaces.C.C_Float := Interfaces.C.C_Float (C (Value)) / 255.0;
    begin
-      return Color_From_HSV (H, S, V);
+      return Raylib.Color_From_HSV (H, S, V);
    end;
 
    procedure Inc (X : in out Integer; Offset : Integer := 1) is
@@ -95,7 +97,7 @@ procedure Eepers is
       X := X - Offset;
    end;
 
-   Palette_RGB : array (Palette) of Color :=
+   Palette_RGB : array (Palette) of Raylib.Color :=
      (others => (A => 255, others => 0));
    Palette_HSV : array (Palette) of HSV := (others => (others => 0));
 
@@ -221,7 +223,7 @@ procedure Eepers is
                  Byte'Value (Ada.Strings.Unbounded.To_String (Tmp.Left));
 
                Palette_RGB (Co.Pal) :=
-                 Color_From_HSV
+                 Raylib.Color_From_HSV
                    (Interfaces.C.C_Float (Palette_HSV (Co.Pal) (Hue)) / 255.0 * 360.0,
                     Interfaces.C.C_Float (Palette_HSV (Co.Pal) (Sat)) / 255.0,
                     Interfaces.C.C_Float (Palette_HSV (Co.Pal) (Value)) / 255.0);
@@ -280,7 +282,7 @@ procedure Eepers is
       Cell_Explosion);
    Cell_Size : constant Vector2 := (x => 50.0, y => 50.0);
 
-   function Cell_Colors (C : Cell) return Color is
+   function Cell_Colors (C : Cell) return Raylib.Color is
    begin
       case C is
          when Cell_None =>
@@ -362,7 +364,7 @@ procedure Eepers is
 
    type Eyes_Kind is
      (Eyes_Open, Eyes_Closed, Eyes_Angry, Eyes_Cringe, Eyes_Surprised);
-   type Eye_Mesh is new Vector2_Array (1 .. 4);
+   type Eye_Mesh is new Raylib.Vector2_Array (1 .. 4);
    type Eye is (Left_Eye, Right_Eye);
    type Eyes_Mesh is array (Eye) of Eye_Mesh;
    Eyes_Meshes : constant array (Eyes_Kind) of Eyes_Mesh :=
@@ -461,7 +463,7 @@ procedure Eepers is
       Ignore : Interfaces.C.Size_t;
    begin
       if not Popup.Visible then
-         Play_Sound (Popup_Show_Sound);
+         Raylib.Play_Sound (Popup_Show_Sound);
       end if;
       Popup.Visible := True;
       Interfaces.C.To_C (Text, Popup.Label, Ignore);
@@ -477,13 +479,13 @@ procedure Eepers is
       if Popup.Visible then
          if Popup.Animation < 1.0 then
             Popup.Animation :=
-              (Popup.Animation * POPUP_ANIMATION_DURATION + Get_Frame_Time)
+              (Popup.Animation * POPUP_ANIMATION_DURATION + Raylib.Get_Frame_Time)
               / POPUP_ANIMATION_DURATION;
          end if;
       else
          if Popup.Animation > 0.0 then
             Popup.Animation :=
-              (Popup.Animation * POPUP_ANIMATION_DURATION - Get_Frame_Time)
+              (Popup.Animation * POPUP_ANIMATION_DURATION - Raylib.Get_Frame_Time)
               / POPUP_ANIMATION_DURATION;
          end if;
       end if;
@@ -494,19 +496,19 @@ procedure Eepers is
               Interfaces.C.C_Float (Tutorial_Font_Size) * Popup.Animation;
             Popup_Bottom_Margin : constant Interfaces.C.C_Float := Font_Size * 0.05;
             Label_Size          : constant Vector2 :=
-              Measure_Text_Ex (Tutorial_Font, Popup.Label, Font_Size, 0.0);
+              Raylib.Measure_Text_Ex (Tutorial_Font, Popup.Label, Font_Size, 0.0);
             Label_Position      : constant Vector2 :=
               Start + Size * (0.5, 0.0) - Label_Size * (0.5, 1.0)
               - (0.0, Popup_Bottom_Margin);
          begin
-            Draw_Text_Ex
+            Raylib.Draw_Text_Ex
               (Tutorial_Font,
                Popup.Label,
                Label_Position + (-2.0, 2.0),
                Font_Size,
                0.0,
                Palette_RGB (COLOR_WALL));
-            Draw_Text_Ex
+            Raylib.Draw_Text_Ex
               (Tutorial_Font,
                Popup.Label,
                Label_Position,
@@ -546,7 +548,7 @@ procedure Eepers is
 
       Items  : Item_Array;
       Bombs  : Bomb_State_Array;
-      Camera : Camera2D :=
+      Camera : Raylib.Camera2D :=
         (offset   => (x => 0.0, y => 0.0),
          target   => (x => 0.0, y => 0.0),
          rotation => 0.0,
@@ -831,24 +833,24 @@ procedure Eepers is
       Level_Player,
       Level_Father,
       Level_Bomb_Slot);
-   Level_Cell_Color : constant array (Level_Cell) of Color :=
-     (Level_None        => Get_Color (16#00000000#),
-      Level_Gnome       => Get_Color (16#FF9600FF#),
-      Level_Mother      => Get_Color (16#96FF00FF#),
-      Level_Guard       => Get_Color (16#00FF00FF#),
-      Level_Floor       => Get_Color (16#FFFFFFFF#),
-      Level_Wall        => Get_Color (16#000000FF#),
-      Level_Door        => Get_Color (16#00FFFFFF#),
-      Level_Checkpoint  => Get_Color (16#FF00FFFF#),
-      Level_Bomb_Refill => Get_Color (16#FF0000FF#),
-      Level_Barricade   => Get_Color (16#FF0096FF#),
-      Level_Key         => Get_Color (16#FFFF00FF#),
-      Level_Player      => Get_Color (16#0000FFFF#),
-      Level_Father      => Get_Color (16#265FDAFF#),
-      Level_Bomb_Slot   => Get_Color (16#BC5353FF#));
+   Level_Cell_Color : constant array (Level_Cell) of Raylib.Color :=
+     (Level_None        => Raylib.Get_Color (16#00000000#),
+      Level_Gnome       => Raylib.Get_Color (16#FF9600FF#),
+      Level_Mother      => Raylib.Get_Color (16#96FF00FF#),
+      Level_Guard       => Raylib.Get_Color (16#00FF00FF#),
+      Level_Floor       => Raylib.Get_Color (16#FFFFFFFF#),
+      Level_Wall        => Raylib.Get_Color (16#000000FF#),
+      Level_Door        => Raylib.Get_Color (16#00FFFFFF#),
+      Level_Checkpoint  => Raylib.Get_Color (16#FF00FFFF#),
+      Level_Bomb_Refill => Raylib.Get_Color (16#FF0000FF#),
+      Level_Barricade   => Raylib.Get_Color (16#FF0096FF#),
+      Level_Key         => Raylib.Get_Color (16#FFFF00FF#),
+      Level_Player      => Raylib.Get_Color (16#0000FFFF#),
+      Level_Father      => Raylib.Get_Color (16#265FDAFF#),
+      Level_Bomb_Slot   => Raylib.Get_Color (16#BC5353FF#));
 
    function Cell_By_Color
-     (Col : Color; Out_Cel : out Level_Cell) return Boolean is
+     (Col : Raylib.Color; Out_Cel : out Level_Cell) return Boolean is
    begin
       for Cel in Level_Cell loop
          if Level_Cell_Color (Cel) = Col then
@@ -862,7 +864,7 @@ procedure Eepers is
    function Screen_Size return Vector2 is
    begin
       return
-        To_Vector2 ((Integer (Get_Screen_Width), Integer (Get_Screen_Height)));
+        To_Vector2 ((Integer (Raylib.Get_Screen_Width), Integer (Raylib.Get_Screen_Height)));
    end;
 
    procedure Load_Game_From_Image
@@ -882,14 +884,14 @@ procedure Eepers is
         Ada.Unchecked_Conversion (Raylib.Addr, Color_Pointer.Pointer);
       use Color_Pointer;
 
-      Img    : constant Image := Raylib.Load_Image (Interfaces.C.To_C (File_Name));
-      Pixels : constant Color_Pointer.Pointer := To_Color_Pointer (Img.Data);
+      The_Img    : constant Raylib.Image := Raylib.Load_Image (Interfaces.C.To_C (File_Name));
+      Pixels : constant Color_Pointer.Pointer := To_Color_Pointer (The_Img.Data);
    begin
       if Game.Map /= null then
          Delete_Map (Game.Map);
       end if;
       Game.Map :=
-        new Map (1 .. Integer (Img.Height), 1 .. Integer (Img.Width));
+        new Map (1 .. Integer (The_Img.Height), 1 .. Integer (The_Img.Width));
 
       for Eeper of Game.Eepers loop
          Eeper.Dead := True;
@@ -897,7 +899,7 @@ procedure Eepers is
             Delete_Path_Map (Eeper.Path);
          end if;
          Eeper.Path :=
-           new Path_Map (1 .. Integer (Img.Height), 1 .. Integer (Img.Width));
+           new Path_Map (1 .. Integer (The_Img.Height), 1 .. Integer (The_Img.Width));
          for Y in Eeper.Path'Range(1) loop
             for X in Eeper.Path'Range(2) loop
                Eeper.Path (Y, X) := -1;
@@ -916,7 +918,7 @@ procedure Eepers is
          for Column in Game.Map'Range(2) loop
             declare
                Index : constant Interfaces.C.Ptrdiff_T :=
-                 Interfaces.C.Ptrdiff_T ((Row - 1) * Integer (Img.Width) + (Column - 1));
+                 Interfaces.C.Ptrdiff_T ((Row - 1) * Integer (The_Img.Width) + (Column - 1));
                Pixel : constant Color_Pointer.Pointer := Pixels + Index;
                Cel   : Level_Cell;
             begin
@@ -1002,9 +1004,9 @@ procedure Eepers is
       end loop;
    end;
 
-   procedure Draw_Bomb (Position : IVector2; C : Color) is
+   procedure Draw_Bomb (Position : IVector2; C : Raylib.Color) is
    begin
-      Draw_Circle_V
+      Raylib.Draw_Circle_V
         (To_Vector2 (Position) * Cell_Size + Cell_Size * 0.5,
          Cell_Size.X * 0.5,
          C);
@@ -1012,27 +1014,27 @@ procedure Eepers is
 
    procedure Draw_Key (Position : IVector2) is
    begin
-      Draw_Circle_V
+      Raylib.Draw_Circle_V
         (To_Vector2 (Position) * Cell_Size + Cell_Size * 0.5,
          Cell_Size.X * 0.25,
          Palette_RGB (COLOR_DOORKEY));
    end;
 
-   procedure Draw_Number (Start, Size : Vector2; N : Integer; C : Color) is
+   procedure Draw_Number (Start, Size : Vector2; N : Integer; C : Raylib.Color) is
       Label        : constant Interfaces.C.Char_Array :=
         Interfaces.C.To_C (Trim (Integer'Image (N), Ada.Strings.Left));
       Label_Height : constant Integer := 32;
       Label_Width  : constant Integer :=
-        Integer (Measure_Text (Label, Interfaces.C.Int (Label_Height)));
+        Integer (Raylib.Measure_Text (Label, Interfaces.C.Int (Label_Height)));
       Text_Size    : constant Vector2 :=
         To_Vector2 ((Label_Width, Label_Height));
       Position     : constant Vector2 := Start + Size * 0.5 - Text_Size * 0.5;
    begin
-      Draw_Text
+      Raylib.Draw_Text
         (Label, Interfaces.C.Int (Position.X), Interfaces.C.Int (Position.Y), Interfaces.C.Int (Label_Height), C);
    end;
 
-   procedure Draw_Number (Cell_Position : IVector2; N : Integer; C : Color) is
+   procedure Draw_Number (Cell_Position : IVector2; N : Integer; C : Raylib.Color) is
    begin
       Draw_Number (To_Vector2 (Cell_Position) * Cell_Size, Cell_Size, N, C);
    end;
@@ -1045,7 +1047,7 @@ procedure Eepers is
                Position : constant Vector2 :=
                  To_Vector2 ((Column, Row)) * Cell_Size;
             begin
-               Draw_Rectangle_V
+               Raylib.Draw_Rectangle_V
                  (position, cell_size, Cell_Colors (Game.Map (Row, Column)));
             end;
          end loop;
@@ -1066,7 +1068,7 @@ procedure Eepers is
                declare
                   Checkpoint_Item_Size : constant Vector2 := Cell_Size * 0.5;
                begin
-                  Draw_Rectangle_V
+                  Raylib.Draw_Rectangle_V
                     (To_Vector2 (Item.Position) * Cell_Size + Cell_Size * 0.5
                      - Checkpoint_Item_Size * 0.5,
                      Checkpoint_Item_Size,
@@ -1077,9 +1079,9 @@ procedure Eepers is
                if Item.Cooldown > 0 then
                   Draw_Bomb
                     (Item.Position,
-                     Color_Brightness (Palette_RGB (COLOR_BOMB), -0.5));
+                     Raylib.Color_Brightness (Palette_RGB (COLOR_BOMB), -0.5));
                   Draw_Number
-                    (Item.Position, Item.Cooldown, Palette_RGB (COLOR_LABEL));
+                    (Cell_Position => Item.Position, N => Item.Cooldown, C => Palette_RGB (COLOR_LABEL));
                else
                   Draw_Bomb (Item.Position, Palette_RGB (COLOR_BOMB));
                end if;
@@ -1157,7 +1159,7 @@ procedure Eepers is
                         when Item_Key =>
                            Inc (Game.Player.Keys);
                            Item.Kind := Item_None;
-                           Play_Sound (Key_Pickup_Sound);
+                           Raylib.Play_Sound (Key_Pickup_Sound);
 
                         when Item_Bomb_Refill =>
                            if Game.Player.Bombs < Game.Player.Bomb_Slots
@@ -1165,7 +1167,7 @@ procedure Eepers is
                            then
                               Inc (Game.Player.Bombs);
                               Item.Cooldown := BOMB_GENERATOR_COOLDOWN;
-                              Play_Sound (Bomb_Pickup_Sound);
+                              Raylib.Play_Sound (Bomb_Pickup_Sound);
                            end if;
 
                         when Item_Bomb_Slot =>
@@ -1177,7 +1179,7 @@ procedure Eepers is
                            Item.Kind := Item_None;
                            Game.Player.Bombs := Game.Player.Bomb_Slots;
                            Game_Save_Checkpoint (Game);
-                           Play_Sound (Checkpoint_Sound);
+                           Raylib.Play_Sound (Checkpoint_Sound);
                      end case;
                   end if;
                end loop;
@@ -1187,13 +1189,13 @@ procedure Eepers is
                   Dec (Game.Player.Keys);
                   Flood_Fill (Game, New_Position, Cell_Floor);
                   Game.Player.Position := New_Position;
-                  Play_Sound (Open_Door_Sound);
+                  Raylib.Play_Sound (Open_Door_Sound);
                end if;
 
             when others =>
                null;
          end case;
-         Play_Sound
+         Raylib.Play_Sound
            (Footsteps_Sounds (Random_Footsteps.Random (Footsteps_Gen)));
       end;
    end;
@@ -1201,7 +1203,7 @@ procedure Eepers is
    procedure Kill_Player (Game : in out Game_State) is
    begin
       Game.Player.Dead := True;
-      Game.Player.Death_Time := Get_Time;
+      Game.Player.Death_Time := Raylib.Get_Time;
    end;
 
    procedure Explode (Game : in out Game_State; Position : in IVector2) is
@@ -1250,7 +1252,7 @@ procedure Eepers is
    end;
 
    Keys : constant array (Direction) of Interfaces.C.int :=
-     (Left => KEY_A, Right => KEY_D, Up => KEY_W, Down => KEY_S);
+     (Left => Raylib.KEY_A, Right => Raylib.KEY_D, Up => Raylib.KEY_W, Down => Raylib.KEY_S);
 
    procedure Game_Update_Camera (Game : in out Game_State) is
       Camera_Target   : constant Vector2 :=
@@ -1262,7 +1264,7 @@ procedure Eepers is
    begin
       Game.Camera.offset := Camera_Offset;
       Game.Camera.target :=
-        Game.Camera.target + Camera_Velocity * Get_Frame_Time;
+        Game.Camera.target + Camera_Velocity * Raylib.Get_Frame_Time;
       --  TODO: animate zoom similarly to Game.Camera.target
       --    So it looks cool when you resize the game in the window mode.
       --  TODO: The tutorial signs look gross on bigger screens.
@@ -1340,7 +1342,7 @@ procedure Eepers is
          if Bomb.Countdown > 0 then
             Dec (Bomb.Countdown);
             if Bomb.Countdown <= 0 then
-               Play_Sound (Blast_Sound);
+               Raylib.Play_Sound (Blast_Sound);
                Explode (Game, Bomb.Position);
             end if;
          end if;
@@ -1416,7 +1418,7 @@ procedure Eepers is
                               Update_Player => True,
                               Update_Camera => False);
                            Game_Save_Checkpoint (Game);
-                           Play_Sound (Checkpoint_Sound);
+                           Raylib.Play_Sound (Checkpoint_Sound);
                         elsif Inside_Of_Rect
                                 (Eeper.Position - Wake_Up_Radius,
                                  Eeper.Size + Wake_Up_Radius * 2,
@@ -1476,7 +1478,7 @@ procedure Eepers is
                                  Eeper.Position :=
                                    Available_Positions
                                      (Random_Integer.Random (Gen) mod Count);
-                                 Play_Sound (Guard_Step_Sound);
+                                 Raylib.Play_Sound (Guard_Step_Sound);
                               end if;
                            end;
                            Eeper.Attack_Cooldown := GUARD_ATTACK_COOLDOWN;
@@ -1659,7 +1661,7 @@ procedure Eepers is
                Game.Tutorial.Waiting := 0.0;
                Hide_Popup (Game.Tutorial.Popup);
             elsif Game.Tutorial.Waiting < TUTORIAL_MOVE_WAIT_TIME_SECS then
-               Game.Tutorial.Waiting := Game.Tutorial.Waiting + Get_Frame_Time;
+               Game.Tutorial.Waiting := Game.Tutorial.Waiting + Raylib.Get_Frame_Time;
             else
                Show_Popup (Game.Tutorial.Popup, "WASD to Move");
             end if;
@@ -1671,7 +1673,7 @@ procedure Eepers is
             elsif Game.Player.Bombs > 0 then
                if Game.Tutorial.Waiting < TUTORIAL_BOMB_WAIT_TIME_SECS then
                   Game.Tutorial.Waiting :=
-                    Game.Tutorial.Waiting + Get_Frame_Time;
+                    Game.Tutorial.Waiting + Raylib.Get_Frame_Time;
                else
                   Show_Popup (Game.Tutorial.Popup, "SPACE to Place Bombs");
                end if;
@@ -1691,7 +1693,7 @@ procedure Eepers is
                if Game.Tutorial.Waiting < TUTORIAL_SPRINT_WAIT_TIME_SECS then
                   Show_Popup (Game.Tutorial.Popup, "Hold SHIFT to Sprint");
                   Game.Tutorial.Waiting :=
-                    Game.Tutorial.Waiting + Get_Frame_Time;
+                    Game.Tutorial.Waiting + Raylib.Get_Frame_Time;
                else
                   Game.Tutorial.Phase := Tutorial_Done;
                   Hide_Popup (Game.Tutorial.Popup);
@@ -1717,10 +1719,10 @@ procedure Eepers is
       Game.Player.Eyes_Angle :=
         Game.Player.Eyes_Angle
         + Eyes_Angular_Direction * EYES_ANGULAR_VELOCITY
-          * Float (Get_Frame_Time);
+          * Float (Raylib.Get_Frame_Time);
       if Game.Player.Dead then
          if Game.Turn_Animation >= 0.0 then
-            Draw_Rectangle_V
+            Raylib.Draw_Rectangle_V
               (Screen_Player_Position (Game),
                Cell_Size,
                Palette_RGB (COLOR_PLAYER));
@@ -1733,7 +1735,7 @@ procedure Eepers is
                Game.Turn_Animation);
          end if;
 
-         if (Get_Time - Game.Player.Death_Time) > RESTART_TIMEOUT_SECS then
+         if (Raylib.Get_Time - Game.Player.Death_Time) > RESTART_TIMEOUT_SECS then
             Game_Restore_Checkpoint (Game);
             for Me in Eeper_Index loop
                Reset_Path_Map (Game.Eepers (Me).Path);
@@ -1744,7 +1746,7 @@ procedure Eepers is
          return;
       end if;
 
-      Draw_Rectangle_V
+      Raylib.Draw_Rectangle_V
         (Screen_Player_Position (Game), Cell_Size, Palette_RGB (COLOR_PLAYER));
       Draw_Eyes
         (Screen_Player_Position (Game),
@@ -1765,7 +1767,7 @@ procedure Eepers is
             case C.Kind is
                when Command_Step =>
                   declare
-                     Start_Of_Turn : constant Interfaces.C.Double := Get_Time;
+                     Start_Of_Turn : constant Interfaces.C.Double := Raylib.Get_Time;
                   begin
                      Game.Tutorial.Knows_How_To_Move := True;
                      if Holding_Shift then
@@ -1774,7 +1776,7 @@ procedure Eepers is
 
                      if Game.Tutorial.Phase = Tutorial_Waiting_For_Sprint then
                         declare
-                           Step_Timestamp  : constant Interfaces.C.Double := Get_Time;
+                           Step_Timestamp  : constant Interfaces.C.Double := Raylib.Get_Time;
                            Delta_Timestamp : constant Interfaces.C.Double :=
                              Step_Timestamp
                              - Game.Tutorial.Prev_Step_Timestamp;
@@ -1794,13 +1796,13 @@ procedure Eepers is
                      Game_Player_Turn (Game, C.Dir);
                      Game_Bombs_Turn (Game);
                      Game_Eepers_Turn (Game);
-                     Game.Duration_Of_Last_Turn := Get_Time - Start_Of_Turn;
+                     Game.Duration_Of_Last_Turn := Raylib.Get_Time - Start_Of_Turn;
                   end;
 
                when Command_Plant =>
                   if Game.Player.Bombs > 0 then
                      declare
-                        Start_Of_Turn : constant Interfaces.C.Double := Get_Time;
+                        Start_Of_Turn : constant Interfaces.C.Double := Raylib.Get_Time;
                      begin
                         Game.Tutorial.Knows_How_To_Place_Bombs := True;
 
@@ -1824,10 +1826,10 @@ procedure Eepers is
                               end if;
                            end loop;
                            Dec (Game.Player.Bombs);
-                           Play_Sound (Plant_Bomb_Sound);
+                           Raylib.Play_Sound (Plant_Bomb_Sound);
                         end if;
 
-                        Game.Duration_Of_Last_Turn := Get_Time - Start_Of_Turn;
+                        Game.Duration_Of_Last_Turn := Raylib.Get_Time - Start_Of_Turn;
                      end;
                   end if;
             end case;
@@ -1853,7 +1855,7 @@ procedure Eepers is
             Position : constant Vector2 :=
               (100.0 + Interfaces.C.C_float (Index - 1) * Cell_Size.X, 100.0);
          begin
-            Draw_Circle_V
+            Raylib.Draw_Circle_V
               (Position, Cell_Size.X * 0.25, Palette_RGB (COLOR_DOORKEY));
          end;
       end loop;
@@ -1865,13 +1867,13 @@ procedure Eepers is
               (100.0 + Interfaces.C.C_float (Index - 1) * (Cell_Size.X + Padding), 200.0);
          begin
             if Index <= Game.Player.Bombs then
-               Draw_Circle_V
+               Raylib.Draw_Circle_V
                  (Position, Cell_Size.X * 0.5, Palette_RGB (COLOR_BOMB));
             else
-               Draw_Circle_V
+               Raylib.Draw_Circle_V
                  (Position,
                   Cell_Size.X * 0.5,
-                  Color_Brightness (Palette_RGB (COLOR_BOMB), -0.5));
+                  Raylib.Color_Brightness (Palette_RGB (COLOR_BOMB), -0.5));
             end if;
          end;
       end loop;
@@ -1880,19 +1882,19 @@ procedure Eepers is
          declare
             Label     : constant Interfaces.C.Char_Array := Interfaces.C.To_C ("You Died!");
             Text_Size : constant Vector2 :=
-              Measure_Text_Ex
+              Raylib.Measure_Text_Ex
                 (Death_Font, Label, Interfaces.C.C_Float (Death_Font_Size), 0.0);
             Position  : constant Vector2 :=
               Screen_Size * 0.5 - Text_Size * 0.5;
          begin
-            Draw_Text_Ex
+            Raylib.Draw_Text_Ex
               (Death_Font,
                Label,
                Position + (-2.0, 2.0),
                Interfaces.C.C_Float (Death_Font_Size),
                0.0,
                Palette_RGB (COLOR_WALL));
-            Draw_Text_Ex
+            Raylib.Draw_Text_Ex
               (Death_Font,
                Label,
                Position,
@@ -1910,7 +1912,7 @@ procedure Eepers is
       Health_Height  : constant Interfaces.C.C_Float := 10.0;
       Health_Width   : constant Interfaces.C.C_Float := Boundary_Size.X * Health;
    begin
-      Draw_Rectangle_V
+      Raylib.Draw_Rectangle_V
         (Boundary_Start - (0.0, Health_Padding + Health_Height),
          (Health_Width, Health_Height),
          Palette_RGB (COLOR_HEALTHBAR));
@@ -1919,12 +1921,12 @@ procedure Eepers is
    procedure Draw_Cooldown_Timer_Bubble
      (Start, Size : Vector2; Cooldown : Integer; Background : Palette)
    is
-      Text_Color    : constant Color := (A => 255, others => 0);
+      Text_Color    : constant Raylib.Color := (A => 255, others => 0);
       Bubble_Radius : constant Interfaces.C.C_Float := 30.0;
       Bubble_Center : constant Vector2 :=
         Start + Size * (0.5, 0.0) - (0.0, Bubble_Radius * 2.0);
    begin
-      Draw_Circle_V (Bubble_Center, Bubble_Radius, Palette_RGB (Background));
+      Raylib.Draw_Circle_V (Bubble_Center, Bubble_Radius, Palette_RGB (Background));
       Draw_Number
         (Bubble_Center - (Bubble_Radius, Bubble_Radius),
          (Bubble_Radius, Bubble_Radius) * 2.0,
@@ -1956,10 +1958,10 @@ procedure Eepers is
                Eeper.Eyes_Angle :=
                  Eeper.Eyes_Angle
                  + Eyes_Angular_Direction * EYES_ANGULAR_VELOCITY
-                   * Float (Get_Frame_Time);
+                   * Float (Raylib.Get_Frame_Time);
                case Eeper.Kind is
                   when Eeper_Father =>
-                     Draw_Rectangle_V
+                     Raylib.Draw_Rectangle_V
                        (Position, Size, Palette_RGB (Eeper.Background));
                      Draw_Eyes
                        (Position,
@@ -1970,7 +1972,7 @@ procedure Eepers is
                         Game.Turn_Animation);
 
                   when Eeper_Guard | Eeper_Mother =>
-                     Draw_Rectangle_V
+                     Raylib.Draw_Rectangle_V
                        (Position, Size, Palette_RGB (Eeper.Background));
                      Health_Bar (Position, Size, Interfaces.C.C_Float (Eeper.Health));
                      if Eeper.Path (Eeper.Position.Y, Eeper.Position.X) = 1
@@ -2004,7 +2006,7 @@ procedure Eepers is
                         GNOME_START : constant Vector2 :=
                           Position + Cell_Size * 0.5 - GNOME_SIZE * 0.5;
                      begin
-                        Draw_Rectangle_V
+                        Raylib.Draw_Rectangle_V
                           (GNOME_START,
                            GNOME_SIZE,
                            Palette_RGB (Eeper.Background));
@@ -2029,141 +2031,141 @@ procedure Eepers is
    Palette_Editor_Choice    : Palette := Palette'First;
    Palette_Editor_Selected  : Boolean := False;
    Palette_Editor_Component : HSV_Comp := Hue;
-   Icon                     : Image;
+   Icon                     : Raylib.Image;
 begin
-   if not Change_Directory (Get_Application_Directory) then
+   if not Raylib.Change_Directory (Raylib.Get_Application_Directory) then
       Ada.Text_IO.Put_Line
         ("WARNING: Could not change working directory to the application directory");
    end if;
 
-   Icon := Load_Image (Interfaces.C.To_C ("assets/icon.png"));
+   Icon := Raylib.Load_Image (Interfaces.C.To_C ("assets/icon.png"));
 
-   Set_Config_Flags (FLAG_WINDOW_RESIZABLE);
-   Init_Window (1600, 900, Title);
-   Set_Window_Icon (Icon);
-   Set_Target_FPS (60);
-   Set_Exit_Key (KEY_NULL);
+   Raylib.Set_Config_Flags (Raylib.FLAG_WINDOW_RESIZABLE);
+   Raylib.Init_Window (1600, 900, Title);
+   Raylib.Set_Window_Icon (Icon);
+   Raylib.Set_Target_FPS (60);
+   Raylib.Set_Exit_Key (Raylib.KEY_NULL);
 
-   Init_Audio_Device;
+   Raylib.Init_Audio_Device;
    for Index in Footsteps_Range loop
       Footsteps_Sounds (Index) :=
-        Load_Sound (Interfaces.C.To_C ("assets/sounds/footsteps.mp3"));
-      Set_Sound_Pitch (Footsteps_Sounds (Index), Footsteps_Pitches (Index));
+        Raylib.Load_Sound (Interfaces.C.To_C ("assets/sounds/footsteps.mp3"));
+      Raylib.Set_Sound_Pitch (Footsteps_Sounds (Index), Footsteps_Pitches (Index));
    end loop;
    Blast_Sound :=
-     Load_Sound
+     Raylib.Load_Sound
        (Interfaces.C.To_C
           ("assets/sounds/blast.ogg"));             -- https://opengameart.org/content/magic-sfx-sample
    Key_Pickup_Sound :=
-     Load_Sound
+     Raylib.Load_Sound
        (Interfaces.C.To_C
           ("assets/sounds/key-pickup.wav"));   -- https://opengameart.org/content/beep-tone-sound-sfx
    Ambient_Music :=
-     Load_Music_Stream
+     Raylib.Load_Music_Stream
        (Interfaces.C.To_C
           ("assets/sounds/ambient.wav"));  -- https://opengameart.org/content/ambient-soundtrack
-   Set_Music_Volume (Ambient_Music, 0.5);
+   Raylib.Set_Music_Volume (Ambient_Music, 0.5);
    Bomb_Pickup_Sound :=
-     Load_Sound
+     Raylib.Load_Sound
        (Interfaces.C.To_C
           ("assets/sounds/bomb-pickup.ogg")); -- https://opengameart.org/content/pickupplastic-sound
    Open_Door_Sound :=
-     Load_Sound
+     Raylib.Load_Sound
        (Interfaces.C.To_C
           ("assets/sounds/open-door.wav"));     -- https://opengameart.org/content/picked-coin-echo
-   Set_Sound_Volume (Open_Door_Sound, 0.5);
+   Raylib.Set_Sound_Volume (Open_Door_Sound, 0.5);
    Checkpoint_Sound :=
-     Load_Sound
+     Raylib.Load_Sound
        (Interfaces.C.To_C
           ("assets/sounds/checkpoint.ogg"));   -- https://opengameart.org/content/level-up-power-up-coin-get-13-sounds
-   Set_Sound_Pitch (Checkpoint_Sound, 0.8);
+   Raylib.Set_Sound_Pitch (Checkpoint_Sound, 0.8);
    Guard_Step_Sound :=
-     Load_Sound
+     Raylib.Load_Sound
        (Interfaces.C.To_C
           ("assets/sounds/guard-step.ogg"));   -- https://opengameart.org/content/fire-whip-hit-yo-frankie
    Plant_Bomb_Sound :=
-     Load_Sound
+     Raylib.Load_Sound
        (Interfaces.C.To_C
           ("assets/sounds/plant-bomb.wav"));   -- https://opengameart.org/content/ui-soundpack-by-m1chiboi-bleeps-and-clicks
    Popup_Show_Sound :=
-     Load_Sound
+     Raylib.Load_Sound
        (Interfaces.C.To_C
           ("assets/sounds/popup-show.wav"));   -- https://opengameart.org/content/ui-soundpack-by-m1chiboi-bleeps-and-clicks
    Tutorial_Font :=
-     Load_Font_Ex
+     Raylib.Load_Font_Ex
        (Interfaces.C.To_C ("assets/fonts/Vollkorn/static/Vollkorn-Regular.ttf"),
         Tutorial_Font_Size,
         0,
         0);
-   Gen_Texture_Mipmaps (Tutorial_Font.Texture'Access);
+   Raylib.Gen_Texture_Mipmaps (Tutorial_Font.Texture'Access);
    Death_Font :=
-     Load_Font_Ex
+     Raylib.Load_Font_Ex
        (Interfaces.C.To_C ("assets/fonts/Vollkorn/static/Vollkorn-Regular.ttf"),
         Death_Font_Size,
         0,
         0);
-   Gen_Texture_Mipmaps (Death_Font.Texture'Access);
+   Raylib.Gen_Texture_Mipmaps (Death_Font.Texture'Access);
 
    Random_Integer.Reset (Gen);
    Load_Colors ("assets/colors.txt");
    Load_Game_From_Image
      ("assets/map.png", Game, Update_Player => True, Update_Camera => True);
    Game_Save_Checkpoint (Game);
-   Play_Music_Stream (Ambient_Music);
+   Raylib.Play_Music_Stream (Ambient_Music);
 
-   while not Window_Should_Close loop
-      if Is_Music_Stream_Playing (Ambient_Music) then
-         Update_Music_Stream (Ambient_Music);
+   while not Raylib.Window_Should_Close loop
+      if Raylib.Is_Music_Stream_Playing (Ambient_Music) then
+         Raylib.Update_Music_Stream (Ambient_Music);
       end if;
-      Begin_Drawing;
-      Clear_Background (Palette_RGB (COLOR_BACKGROUND));
+      Raylib.Begin_Drawing;
+      Raylib.Clear_Background (Palette_RGB (COLOR_BACKGROUND));
 
       Holding_Shift :=
-        Boolean (Is_Key_Down (KEY_LEFT_SHIFT))
-        or else Boolean (Is_Key_Down (KEY_RIGHT_SHIFT));
+        Boolean (Raylib.Is_Key_Down (Raylib.KEY_LEFT_SHIFT))
+        or else Boolean (Raylib.Is_Key_Down (Raylib.KEY_RIGHT_SHIFT));
       if Game.Player.Dead then
          Command_Queue.Size := 0;
       else
          if Holding_Shift and then Game.Turn_Animation <= 0.0 then
-            if Is_Key_Down (KEY_A) or else Is_Key_Down (KEY_LEFT) then
+            if Raylib.Is_Key_Down (Raylib.KEY_A) or else Raylib.Is_Key_Down (Raylib.KEY_LEFT) then
                Command_Queue.Size := 0;
                Command_Enqueue
                  (Command_Queue, (Kind => Command_Step, Dir => Left));
             end if;
-            if Is_Key_Down (KEY_D) or else Is_Key_Down (KEY_RIGHT) then
+            if Raylib.Is_Key_Down (Raylib.KEY_D) or else Raylib.Is_Key_Down (Raylib.KEY_RIGHT) then
                Command_Queue.Size := 0;
                Command_Enqueue
                  (Command_Queue, (Kind => Command_Step, Dir => Right));
             end if;
-            if Is_Key_Down (KEY_S) or else Is_Key_Down (KEY_DOWN) then
+            if Raylib.Is_Key_Down (Raylib.KEY_S) or else Raylib.Is_Key_Down (Raylib.KEY_DOWN) then
                Command_Queue.Size := 0;
                Command_Enqueue
                  (Command_Queue, (Kind => Command_Step, Dir => Down));
             end if;
-            if Is_Key_Down (KEY_W) or else Is_Key_Down (KEY_UP) then
+            if Raylib.Is_Key_Down (Raylib.KEY_W) or else Raylib.Is_Key_Down (Raylib.KEY_UP) then
                Command_Queue.Size := 0;
                Command_Enqueue
                  (Command_Queue, (Kind => Command_Step, Dir => Up));
             end if;
          else
-            if Is_Key_Pressed (KEY_A) or else Is_Key_Pressed (KEY_LEFT) then
+            if Raylib.Is_Key_Pressed (Raylib.KEY_A) or else Raylib.Is_Key_Pressed (Raylib.KEY_LEFT) then
                Command_Enqueue
                  (Command_Queue, (Kind => Command_Step, Dir => Left));
             end if;
-            if Is_Key_Pressed (KEY_D) or else Is_Key_Pressed (KEY_RIGHT) then
+            if Raylib.Is_Key_Pressed (Raylib.KEY_D) or else Raylib.Is_Key_Pressed (Raylib.KEY_RIGHT) then
                Command_Enqueue
                  (Command_Queue, (Kind => Command_Step, Dir => Right));
             end if;
-            if Is_Key_Pressed (KEY_S) or else Is_Key_Pressed (KEY_DOWN) then
+            if Raylib.Is_Key_Pressed (Raylib.KEY_S) or else Raylib.Is_Key_Pressed (Raylib.KEY_DOWN) then
                Command_Enqueue
                  (Command_Queue, (Kind => Command_Step, Dir => Down));
             end if;
-            if Is_Key_Pressed (KEY_W) or else Is_Key_Pressed (KEY_UP) then
+            if Raylib.Is_Key_Pressed (Raylib.KEY_W) or else Raylib.Is_Key_Pressed (Raylib.KEY_UP) then
                Command_Enqueue
                  (Command_Queue, (Kind => Command_Step, Dir => Up));
             end if;
          end if;
-         if Is_Key_Pressed (KEY_SPACE) then
+         if Raylib.Is_Key_Pressed (Raylib.KEY_SPACE) then
             Command_Enqueue (Command_Queue, (Kind => Command_Plant));
          end if;
       end if;
@@ -2179,7 +2181,7 @@ begin
       end if;
 
       if DEVELOPMENT then
-         if Is_Key_Pressed (KEY_R) then
+         if Raylib.Is_Key_Pressed (Raylib.KEY_R) then
             Load_Game_From_Image
               ("assets/map.png",
                Game,
@@ -2187,7 +2189,7 @@ begin
                Update_Camera => False);
          end if;
 
-         if Is_Key_Pressed (KEY_O) then
+         if Raylib.Is_Key_Pressed (Raylib.KEY_O) then
             Palette_Editor := not Palette_Editor;
             if not Palette_Editor then
                Save_Colors ("assets/colors.txt");
@@ -2196,25 +2198,25 @@ begin
 
          if Palette_Editor then
             if Palette_Editor_Selected then
-               if Is_Key_Pressed (KEY_ESCAPE) then
+               if Raylib.Is_Key_Pressed (Raylib.KEY_ESCAPE) then
                   Palette_Editor_Selected := False;
                end if;
 
-               if Is_Key_Pressed (Keys (Left)) then
+               if Raylib.Is_Key_Pressed (Keys (Left)) then
                   if Palette_Editor_Component /= HSV_Comp'First then
                      Palette_Editor_Component :=
                        HSV_Comp'Pred (Palette_Editor_Component);
                   end if;
                end if;
 
-               if Is_Key_Pressed (Keys (Right)) then
+               if Raylib.Is_Key_Pressed (Keys (Right)) then
                   if Palette_Editor_Component /= HSV_Comp'Last then
                      Palette_Editor_Component :=
                        HSV_Comp'Succ (Palette_Editor_Component);
                   end if;
                end if;
 
-               if Is_Key_Down (Keys (Up)) then
+               if Raylib.Is_Key_Down (Keys (Up)) then
                   Inc
                     (Palette_HSV (Palette_Editor_Choice)
                        (Palette_Editor_Component));
@@ -2222,7 +2224,7 @@ begin
                     HSV_To_RGB (Palette_HSV (Palette_Editor_Choice));
                end if;
 
-               if Is_Key_Down (Keys (Down)) then
+               if Raylib.Is_Key_Down (Keys (Down)) then
                   Dec
                     (Palette_HSV (Palette_Editor_Choice)
                        (Palette_Editor_Component));
@@ -2230,25 +2232,25 @@ begin
                     HSV_To_RGB (Palette_HSV (Palette_Editor_Choice));
                end if;
             else
-               if Is_Key_Pressed (Keys (Down)) then
+               if Raylib.Is_Key_Pressed (Keys (Down)) then
                   if Palette_Editor_Choice /= Palette'Last then
                      Palette_Editor_Choice :=
                        Palette'Succ (Palette_Editor_Choice);
                   end if;
                end if;
 
-               if Is_Key_Pressed (Keys (Up)) then
+               if Raylib.Is_Key_Pressed (Keys (Up)) then
                   if Palette_Editor_Choice /= Palette'First then
                      Palette_Editor_Choice :=
                        Palette'Pred (Palette_Editor_Choice);
                   end if;
                end if;
 
-               if Is_Key_Pressed (KEY_ESCAPE) then
+               if Raylib.Is_Key_Pressed (Raylib.KEY_ESCAPE) then
                   Palette_Editor := False;
                end if;
 
-               if Is_Key_Pressed (KEY_ENTER) then
+               if Raylib.Is_Key_Pressed (Raylib.KEY_ENTER) then
                   Palette_Editor_Selected := True;
                end if;
             end if;
@@ -2259,12 +2261,12 @@ begin
 
       if Game.Turn_Animation > 0.0 then
          Game.Turn_Animation :=
-           (Game.Turn_Animation * TURN_DURATION_SECS - Float (Get_Frame_Time))
+           (Game.Turn_Animation * TURN_DURATION_SECS - Float (Raylib.Get_Frame_Time))
            / TURN_DURATION_SECS;
       end if;
 
       Game_Update_Camera (Game);
-      Begin_Mode2D (Game.Camera);
+      Raylib.Begin_Mode2D (Game.Camera);
       Game_Cells (Game);
       Game_Items (Game);
       Game_Player (Game);
@@ -2272,7 +2274,7 @@ begin
       Game_Bombs (Game);
       Game_Tutorial (Game);
       if DEVELOPMENT then
-         if Is_Key_Down (KEY_P) then
+         if Raylib.Is_Key_Down (Raylib.KEY_P) then
             for Row in Game.Map'Range(1) loop
                for Column in Game.Map'Range(2) loop
                   Draw_Number
@@ -2283,16 +2285,16 @@ begin
             end loop;
          end if;
       end if;
-      End_Mode2D;
+      Raylib.End_Mode2D;
 
       Game_Hud (Game);
       if DEVELOPMENT then
-         Draw_FPS (10, 10);
+         Raylib.Draw_FPS (10, 10);
          declare
             S : String (1 .. 20);
          begin
             Double_IO.Put (S, Game.Duration_Of_Last_Turn, Exp => 0);
-            Draw_Text (Interfaces.C.To_C (S), 100, 10, 32, (others => 255));
+            Raylib.Draw_Text (Interfaces.C.To_C (S), 100, 10, 32, (others => 255));
          end;
       end if;
 
@@ -2305,7 +2307,7 @@ begin
                  (200.0,
                   200.0 + Interfaces.C.C_Float (Palette'Pos (C)) * Interfaces.C.C_Float (Label_Height));
             begin
-               Draw_Text
+               Raylib.Draw_Text
                  (Label,
                   Interfaces.C.Int (Position.X),
                   Interfaces.C.Int (Position.Y),
@@ -2326,7 +2328,7 @@ begin
                           + Interfaces.C.C_Float (Palette'Pos (C))
                             * Interfaces.C.C_Float (Label_Height));
                   begin
-                     Draw_Text
+                     Raylib.Draw_Text
                        (Label,
                         Interfaces.C.Int (Position.X),
                         Interfaces.C.Int (Position.Y),
@@ -2341,9 +2343,9 @@ begin
             end;
          end loop;
       end if;
-      End_Drawing;
+      Raylib.End_Drawing;
    end loop;
-   Close_Window;
+   Raylib.Close_Window;
 end;
 
 --  TODO: Cringing on damage mechanic broke
